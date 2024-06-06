@@ -3,8 +3,6 @@ import os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 # os.environ["CUDA_VISIBLE_DEVICES"] = "3"
-os.environ['HTTP_PROXY'] = '172.20.110.220:7890'
-os.environ['HTTPS_PROXY'] = '172.20.110.220:7890'
 
 import torch
 import pytorch_lightning as pl
