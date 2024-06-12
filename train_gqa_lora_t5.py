@@ -1,3 +1,6 @@
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
 import torch
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -21,7 +24,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model_type = 't5-small'
 model_name = 'google-t5/t5-small'
 tasks = [['sst2', 2], ['qnli', 2], ['mnli', 3]]
-config_files = ["lora_by_type.toml"]
+config_files = ["./lora/lora_by_type.toml"]
 res = []
 
 for config_file in config_files:
@@ -46,8 +49,8 @@ with open("results/t5_lora_params_flops.csv", "w", newline='') as file:
             model_type = f'OPT-GQA-LoRA_R=32_Neighbouring_#Group={len(grouping["k"][0])}-Pooling'
             
             peft_config = T5LoraConfig.from_pretrained(model_name, lora_config=lora_config, num_labels=num_labels)
-            model = modeling_t5_lora.T5ForSequenceClassification.\
-                    from_pretrained(model_name, config=peft_config)
+
+            model = modeling_t5_lora.T5ForSequenceClassification.from_pretrained(model_name, config=peft_config)
 
             model.config.groups_idx = grouping
             gqa_model = modeling_t5_gqa_lora.T5ForSequenceClassification(model.config)
@@ -58,7 +61,7 @@ with open("results/t5_lora_params_flops.csv", "w", newline='') as file:
 
             classifier = Classifier(gqa_model)
 
-            logger = TensorBoardLogger("/home/qtr/code-main/models/tensorboard/lightning_logs", name=task_name + "-" + model_type + "-" + "GQA-LORA")
+            logger = TensorBoardLogger("/home/qtr/Gqa_search/tensorboard/lightning_logs", name=task_name + "-" + model_type + "-" + "GQA-LORA")
             trainer = pl.Trainer(max_epochs=20, logger=logger)
             trainer.fit(classifier, data_module)
             

@@ -421,7 +421,7 @@ def randomized_search(model, model_name, task_name, num_labels):
     num_layers = model.config.num_layers
     num_heads = model.config.num_heads
      
-    nums_groups = [4, 3, 6, 2]
+    nums_groups = [2, 4]
     groupings = []
     
     config = model.config
@@ -438,15 +438,8 @@ def randomized_search(model, model_name, task_name, num_labels):
             for t in ['k', 'v']:
                 config.groups_idx = grouping
                 gqa_model = modeling_t5_gqa.T5ForSequenceClassification(config)
-
-                # print(f'Size:{size}, grouping:{grouping}')
-                # st = gqa_model.state_dict()
-                # st1 = model.state_dict()
-                # name = 'model.decoder.block.5.layer.0.SelfAttention.k.weight'
-                # print(f'Temp:{st[name].shape}')
-                # print(f'Ori_Temp:{st1[name].shape}')
                 
-                x, accuracy = find_grouping(distance[j][t], model, gqa_model, size, j, grouping, t, loader, len(validation))
+                x, accuracy = find_asym_grouping(distance[j][t], model, gqa_model, size, j, grouping, t, loader, len(validation))
                 grouping[t][j] = x
                 print(task_name, i, j, t, "accuracy", accuracy)
         groupings.append(grouping)

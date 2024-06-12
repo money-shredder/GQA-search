@@ -19,7 +19,7 @@ from typing import Mapping
 from transformers.configuration_utils import PretrainedConfig
 from transformers.utils import logging
 
-from ...lora.lora_config import parse_lora_config
+from lora.lora_config import parse_lora_config
 
 
 logger = logging.get_logger(__name__)
@@ -108,6 +108,7 @@ class T5LoraConfig(PretrainedConfig):
             num_decoder_layers if num_decoder_layers is not None else self.num_layers
         )  # default = symmetry
         self.num_heads = num_heads
+        self.is_decoder = False
         self.relative_attention_num_buckets = relative_attention_num_buckets
         self.relative_attention_max_distance = relative_attention_max_distance
         self.dropout_rate = dropout_rate
@@ -116,10 +117,16 @@ class T5LoraConfig(PretrainedConfig):
         self.initializer_factor = initializer_factor
         self.feed_forward_proj = feed_forward_proj
         self.use_cache = use_cache
+        self.is_decoder_cross_attn = False
 
         act_info = self.feed_forward_proj.split("-")
         self.dense_act_fn = act_info[-1]
         self.is_gated_act = act_info[0] == "gated"
+        if lora_config is not None and self.is_decoder_cross_attn == False:
+            lora_config = parse_lora_config(lora_config, num_layers)
+        self.lora_config = lora_config
+        
+
 
         if len(act_info) > 1 and act_info[0] != "gated" or len(act_info) > 2:
             raise ValueError(
@@ -138,11 +145,7 @@ class T5LoraConfig(PretrainedConfig):
             is_encoder_decoder=is_encoder_decoder,
             **kwargs,
         )
-        if lora_config is not None:
-            lora_config = parse_lora_config(lora_config, num_layers)
-        
-        self.lora_config = lora_config
-        
+
         
     def __setattr__(self, key, value):
         if key == "lora_config" and value is not None:

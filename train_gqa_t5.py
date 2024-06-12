@@ -2,7 +2,9 @@ import os
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-# os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ['HTTP_PROXY'] = '172.20.110.220:7890'
+os.environ['HTTPS_PROXY'] = '172.20.110.220:7890'
 
 import torch
 import pytorch_lightning as pl
@@ -29,7 +31,7 @@ model_name = 'google-t5/t5-small'
 
 res = list()
 
-with open("results/t5small_rdsearch_groupings_4.csv", "w", newline='') as file:
+with open("./results/t5small_rdsearch_groupings.csv", "w", newline='') as file:
     writer = csv.writer(file)
     for task_name, num_labels in tasks:
 
@@ -53,7 +55,7 @@ with open("results/t5small_rdsearch_groupings_4.csv", "w", newline='') as file:
         # groupings = neighbour_grouping()
         
         for grouping in groupings:
-            model_type = f'T5-GQA-ACTV1_RDSearch_N=10_#Group={len(grouping["k"][0])}-Pooling'
+            model_type = f'T5-GQA-ACTV1_RDSearch_Asym_N=10_#Group={len(grouping["k"][0])}-Pooling'
             # model_type = f'LLaMA-GQA-Neighbouring_#Group={len(grouping["k"][0])}-Pooling'
 
             config.groups_idx = grouping
@@ -64,22 +66,22 @@ with open("results/t5small_rdsearch_groupings_4.csv", "w", newline='') as file:
 
             classifier = Classifier(gqa_model)
 
-            logger = TensorBoardLogger("/home/qtr/code-main/models/tensorboard/lightning_logs", name=task_name + "-" + model_type + "-" + "GQA")
+            logger = TensorBoardLogger("/home/qtr/Gqa_search/tensorboard/lightning_logs", name=task_name + "-" + model_type + "-" + "GQA")
             trainer = pl.Trainer(max_epochs=3, logger=logger)
             trainer.fit(classifier, data_module)
 
-        #     total_flops = total_params = 0
-        #     for _, module in gqa_model.named_modules():
-        #         if hasattr(module, "flops"):
-        #             total_flops += module.flops
-        #         if hasattr(module, "num_params"):
-        #             total_params += module.num_params
-        #     # print(f"total flops: {total_flops}")
+            total_flops = total_params = 0
+            for _, module in gqa_model.named_modules():
+                if hasattr(module, "flops"):
+                    total_flops += module.flops
+                if hasattr(module, "num_params"):
+                    total_params += module.num_params
+            # print(f"total flops: {total_flops}")
             
-        #     res.append((total_params, total_flops))
+            res.append((total_params, total_flops))
 
-        # print(res)
+        print(res)
 
-        # with open("results/llama_params_flops.csv", "w", newline='') as file:
-        #     writer = csv.writer(file)
-        #     writer.writerows(res)
+        with open("results/t5_params_flops.csv", "w", newline='') as file:
+            writer = csv.writer(file)
+            writer.writerows(res)

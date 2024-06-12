@@ -1,5 +1,5 @@
 import torch
-import models.opt.modeling_opt as modeling_opt
+import models.flant5.modeling_t5 as modeling_t5
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.spatial.distance import squareform
@@ -10,14 +10,14 @@ import matplotlib.pyplot as plt
 import math
 
 
-def uniform_groups(size, tot=12):
+def uniform_groups(size, tot=8):
     return [list(range(i, min(i + size, tot))) for i in range(0, tot, size)]
 
 def neighbour_grouping():
-    nums_groups = [6, 4, 3, 2]
+    nums_groups = [2, 4]
     groupings = [{"k": [], "v": []} for _ in range(len(nums_groups))]
     for i in range(len(nums_groups)):
-        groups = [uniform_groups(12 // nums_groups[i]) for _ in range(12)]
+        groups = [uniform_groups(8 // nums_groups[i]) for _ in range(8)]
         groupings[i]["k"] = groupings[i]["v"] =  groups
     
     for grouping in groupings:
@@ -29,7 +29,7 @@ def kv_grouping(model):
     num_layers = model.config.num_hidden_layers
     num_heads = model.config.num_attention_heads
     
-    nums_groups = [6, 4, 3, 2]
+    nums_groups = [2, 4]
     groupings = [{"k": [], "v": []} for _ in range(len(nums_groups) + 1)]
     
     for layer_id in range(num_layers):
@@ -38,7 +38,7 @@ def kv_grouping(model):
         vectors["v"] = [[] for _ in range(num_heads)]
         
         for t in ("k", "v"):
-            mat_name = f'model.decoder.layers.{layer_id}.self_attn.{t}_proj.weight'
+            mat_name = f'model.decoder.block.{layer_id}.layer.0.SelfAttention.{t}.weight'
             layer = state[mat_name].transpose(0, 1)
             for i, x in enumerate(torch.tensor_split(layer, num_heads, dim=1)):
                 vectors[t][i] = (x.flatten() if t == 'k' else x.transpose(0, 1).flatten())
@@ -108,7 +108,7 @@ def kv_svd_grouping(model):
     num_layers = model.config.num_hidden_layers
     num_heads = model.config.num_attention_heads
     
-    nums_groups = [6, 4, 3, 2]
+    nums_groups = [2, 4]
     groupings = [{"k": [], "v": []} for _ in range(len(nums_groups) + 1)]
     
     for layer_id in range(num_layers):
@@ -119,7 +119,7 @@ def kv_svd_grouping(model):
         k = [128, 0, 16]
         
         for t in ("k", "v"):
-            mat_name = f'model.decoder.layers.{layer_id}.self_attn.{t}_proj.weight'
+            mat_name = f'model.decoder.block.{layer_id}.layer.0.SelfAttention.{t}.weight'
             layer = state[mat_name].transpose(0, 1)
             for i, x in enumerate(torch.tensor_split(layer, num_heads, dim=1)):
                 SVD[t][i] = torch.linalg.svd(x)
@@ -193,7 +193,7 @@ def actv_grouping(model, task_name, num_labels, num_samples=120):
     num_heads = model.config.num_attention_heads
     
     dataset = load_dataset('glue', task_name,
-        cache_dir="/local/scratch/yc538/.cache/huggingface/datasets")
+        cache_dir="/home/qtr/.cache/huggingface/datasets")
     train_dataset = dataset['train']
 
     size = num_samples // num_labels
@@ -223,14 +223,14 @@ def actv_grouping(model, task_name, num_labels, num_samples=120):
     modules = dict([*model.named_modules()])
     for i in range(num_layers):
         for t in ('k', 'v'):
-            layer = f'model.decoder.layers.{i}.self_attn.{t}_proj'
+            layer = f'model.decoder.block.{layer_id}.layer.0.SelfAttention.{t}.weight'
             modules[layer].register_forward_hook(module_hook(i, t))
 
     model.eval()
     with torch.no_grad():
         outputs = model(**tokenized_samples)
     
-    nums_groups = [6, 4, 3, 2]
+    nums_groups = [2, 4]
     groupings = [{"k": [], "v": []} for _ in range(len(nums_groups) + 1)]
     
     for layer_id in range(num_layers):
@@ -250,9 +250,9 @@ def actv_grouping(model, task_name, num_labels, num_samples=120):
 
 
 if __name__ == "__main__":
-    model_name = 'facebook/opt-125m'
+    model_name = 'google/t5-small'
     task_name = 'sst2'
     num_labels = 2
-    model = modeling_opt.OPTForSequenceClassification.from_pretrained(model_name, num_labels=num_labels)
+    model = modeling_t5.T5ForSequenceClassification.from_pretrained(model_name, num_labels=num_labels)
     kv_svd_grouping(model)
     

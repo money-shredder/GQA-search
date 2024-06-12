@@ -1,5 +1,5 @@
 import torch.nn as nn
-from lora_modules import LoraLayer
+from lora.lora_modules import LoraLayer
 
 
 def transpose(weight, fan_in_fan_out):
