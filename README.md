@@ -5,17 +5,14 @@ GQA Search on T5-small model.
 Train GQA of T5-small:
 ```
 python train_gqa_t5.py 
-
 ```
 Train Lora of T5-small:
 ```
 python train_lora_t5.py 
-
 ```
 Train GQA-Lora of T5-small:
 ```
 python train_gqa_lora_t5.py 
-
 ```
 
 Parameters: 
