@@ -29,5 +29,4 @@ For MMLU task:
 train eval_prompting.py
 ```
 
-TODO: Lora And GQA-Lora
-
+TODO: Apply on T5-XXL or FlanT5-XXL.
